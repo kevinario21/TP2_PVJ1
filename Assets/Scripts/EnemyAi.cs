@@ -27,14 +27,11 @@ public class EnemyAI : MonoBehaviour
     private NavMeshAgent agent;
     private Transform playerTransform;
     private HealthSystem healthSystemPlayer;
-    //private Attack attack;
     private bool isStunned;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        //attack = GetComponent<Attack>();
-
     }
 
     private void Start()
@@ -47,7 +44,7 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            Debug.LogError(" No  hay GameObjects con  tag Player");
+            Debug.LogError("No hay GameObjects con tag Player");
         }
 
         if (patrolPoints.Length > 0)
@@ -58,6 +55,9 @@ public class EnemyAI : MonoBehaviour
 
     private void Update()
     {
+        // SEGURIDAD: Si el agente no está en el NavMesh, no ejecutamos lógica de IA para evitar errores
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh) return;
+
         if (isStunned || playerTransform == null || (healthSystemPlayer != null && healthSystemPlayer.IsDead))
         {
             agent.isStopped = true;
@@ -92,7 +92,8 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
-        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+        // Verificación adicional de seguridad antes de leer remainingDistance
+        if (!agent.pathPending && agent.isOnNavMesh && agent.remainingDistance <= agent.stoppingDistance)
         {
             if (!isWaitingAtPoint)
             {
@@ -104,9 +105,12 @@ public class EnemyAI : MonoBehaviour
     private void UpdateChaseState(float distanceToPlayer)
     {
         agent.isStopped = false;
-        agent.SetDestination(playerTransform.position);
+        if (agent.isOnNavMesh)
+        {
+            agent.SetDestination(playerTransform.position);
+        }
 
-        // Transicion  Ataque
+        // Transicion Ataque
         if (distanceToPlayer <= attackRadius)
         {
             currentState = AIState.Attack;
@@ -123,40 +127,38 @@ public class EnemyAI : MonoBehaviour
 
     private void UpdateAttackState(float distanceToPlayer)
     {
-
         transform.LookAt(new Vector3(playerTransform.position.x, transform.position.y, playerTransform.position.z));
-        // Transicion de regreso a Persecucion si se aleja
 
+        // Transicion de regreso a Persecucion si se aleja
         if (distanceToPlayer > attackRadius && !isAttacking)
         {
             currentState = AIState.Chase;
             return;
         }
+
         if (!isAttacking)
         {
             StartCoroutine(AttackCooldown());
         }
-
     }
 
     IEnumerator AttackCooldown()
     {
         isAttacking = true;
-        agent.isStopped = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
+
         ExecuteAttack();
         yield return new WaitForSeconds(attackCooldown);
+
         isAttacking = false;
-        agent.isStopped = false;
-
-
+        if (agent.isOnNavMesh) agent.isStopped = false;
     }
 
     private void ExecuteAttack()
     {
         if (healthSystemPlayer != null)
         {
-            Debug.Log("Ataque  contra el jugador");
-            //attack.Melee();
+            Debug.Log("Ataque contra el jugador");
         }
     }
 
@@ -167,7 +169,7 @@ public class EnemyAI : MonoBehaviour
 
         if (patrolPoints.Length > 0)
         {
-            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;//2%3
+            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
             GoToNextPatrolPoint();
         }
 
@@ -178,8 +180,12 @@ public class EnemyAI : MonoBehaviour
     {
         if (patrolPoints.Length == 0) return;
 
-        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+        if (agent.isOnNavMesh)
+        {
+            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+        }
     }
+
     private void OnDrawGizmosSelected()
     {
         // Radio de deteccion (Amarillo)
@@ -191,9 +197,6 @@ public class EnemyAI : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, attackRadius);
     }
 
-
-
-
     public void Stun(float duration)
     {
         StartCoroutine(StunRoutine(duration));
@@ -202,18 +205,13 @@ public class EnemyAI : MonoBehaviour
     private IEnumerator StunRoutine(float duration)
     {
         isStunned = true;
-        agent.isStopped = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
         Debug.Log($"Aturdido por {duration} segundos");
 
         yield return new WaitForSeconds(duration);
 
         isStunned = false;
-        agent.isStopped = false;
+        if (agent.isOnNavMesh) agent.isStopped = false;
         Debug.Log("Recuperado del aturdimiento");
     }
-
-
-
-
-
 }

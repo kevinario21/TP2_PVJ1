@@ -29,22 +29,20 @@ public class PlayerMovement : MonoBehaviour
     private float moveVertical;
     private Rigidbody rb;
 
-    [Header("Raycast Ground Settings")]
-    [SerializeField] private bool isGrounded;
+    [Header("Ground & Platform Settings")]
+    [SerializeField] private bool isGrounded;          // Detectado por Raycast (para el terreno general)
+    [SerializeField] private bool isOnPlatform;        // Detectado por Colisión (para la plataforma móvil)
     [SerializeField] private float rayDistance = 1.1f;
     [SerializeField] private LayerMask groundLayer;
-
-    private GameManager gm; // Referencia opcional por si la usas luego
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.constraints = RigidbodyConstraints.FreezeRotation; // Evita que el personaje se caiga de lado al chocar
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
     }
 
     void Update()
     {
-        // Si el personaje está detenido, no procesamos entradas de movimiento ni salto
         if (isStop)
         {
             moveHorizontal = 0f;
@@ -55,22 +53,28 @@ public class PlayerMovement : MonoBehaviour
         moveHorizontal = Input.GetAxis("Horizontal");
         moveVertical = Input.GetAxis("Vertical");
 
-        // Detección de suelo por Raycast (del primer código)
+        // 1. Comprobamos el suelo general con Raycast
         CheckGround();
 
-        // Lógica de Salto y Doble Salto unificada
+        // Propiedad unificada: Estamos en el suelo si el Raycast toca el terreno O si estamos sobre la plataforma
+        bool canJump = isGrounded || isOnPlatform;
+
+        // 2. Lógica de Salto
         if (Input.GetButtonDown("Jump"))
         {
-            if (isGrounded)
+            if (canJump)
             {
                 // Primer salto
                 ExecuteJump(jumpForce);
                 jumpsPerformed = 1;
-                transform.SetParent(null); // Desvincula de plataformas móviles al saltar
+
+                // Si salta desde la plataforma, nos desvinculamos de ella
+                transform.SetParent(null);
+                isOnPlatform = false;
             }
             else if (jumpsPerformed < maxJumps)
             {
-                // Segundo salto en el aire
+                // Segundo salto en el aire (Doble salto)
                 ExecuteJump(doubleJumpForce);
                 jumpsPerformed++;
             }
@@ -81,14 +85,13 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isStop) return;
 
-        // Movimiento relativo a la rotación de la cámara (tomado del primer script pero mejorado)
+        // Movimiento relativo a la rotación de la cámara
         Vector3 movement = (transform.forward * moveVertical + transform.right * moveHorizontal).normalized;
         rb.linearVelocity = new Vector3(movement.x * speed, rb.linearVelocity.y, movement.z * speed);
     }
 
     private void ExecuteJump(float force)
     {
-        // Resetea la velocidad vertical para un impulso limpio y consistente
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * force, ForceMode.Impulse);
     }
@@ -102,48 +105,45 @@ public class PlayerMovement : MonoBehaviour
         Debug.DrawRay(origin, Vector3.down * rayDistance, colorRay);
     }
 
-    // --- Métodos de interacción con Plataformas (del segundo script) ---
+    // --- DETECCIÓN DE LA PLATAFORMA MÓVIL (COMO ASCENSOR) ---
     private void OnCollisionStay(Collision collision)
     {
-        foreach (ContactPoint contacto in collision.contacts)
+        // Si el objeto con el que colisionamos tiene la etiqueta "Plataforma"
+        if (collision.gameObject.CompareTag("Plataforma"))
         {
-            if (contacto.normal.y > 0.5f)
+            foreach (ContactPoint contacto in collision.contacts)
             {
-                if (collision.gameObject.CompareTag("Plataforma"))
+                // Verificamos que lo estemos pisando desde arriba
+                if (contacto.normal.y > 0.5f)
                 {
-                    transform.SetParent(collision.transform);
+                    isOnPlatform = true;
+                    transform.SetParent(collision.transform); // Nos hacemos hijos para movernos con ella
+                    break;
                 }
-                break;
             }
         }
     }
 
     private void OnCollisionExit(Collision collision)
     {
+        // Cuando salimos de la plataforma móvil
         if (collision.gameObject.CompareTag("Plataforma"))
         {
-            transform.SetParent(null);
+            transform.SetParent(null); // Nos desvinculamos
+            isOnPlatform = false;      // Ya no estamos en la plataforma
         }
     }
 
-    // --- Métodos públicos para habilidades o control externo ---
+    // Métodos públicos de control
     public void RotateCharacter(float rotateY)
     {
-        // Método indispensable para que funcione con tu script CameraFollow
         transform.rotation = Quaternion.Euler(0f, rotateY, 0f);
     }
 
-    public void EnableDoubleJump()
-    {
-        maxJumps = 2;
-    }
-
+    public void EnableDoubleJump() => maxJumps = 2;
     public void DisableDoubleJump()
     {
         maxJumps = 1;
-        if (jumpsPerformed > 1)
-        {
-            jumpsPerformed = 1;
-        }
+        if (jumpsPerformed > 1) jumpsPerformed = 1;
     }
 }

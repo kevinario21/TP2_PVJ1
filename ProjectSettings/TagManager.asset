@@ -5,10 +5,10 @@ TagManager:
   serializedVersion: 3
   tags:
   - Ground
-  - Platform
   - Plataforma
   - Character
   - Item
+  - Weapon
   layers:
   - Default
   - TransparentFX

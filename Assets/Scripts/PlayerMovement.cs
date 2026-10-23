@@ -1,77 +1,114 @@
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Configuración de Movimiento")]
-    public float velocidadCaminar = 5f;
+    [Header("Movement Settings")]
+    [SerializeField] private float speed = 5f;
+    public float Speed
+    {
+        get { return speed; }
+        set { speed = value; }
+    }
 
+    [SerializeField] private bool isStop = false;
+    public bool IsStop
+    {
+        get { return isStop; }
+        set { isStop = value; }
+    }
 
-    [Header("Configuración de Salto")]
-    public float fuerzaSalto = 10f;
-    public float fuerzaDoble = 5f;
+    [Header("Jump Settings")]
+    [SerializeField] private float jumpForce = 10f;
+    [SerializeField] private float doubleJumpForce = 5f;
+    [SerializeField] private int maxJumps = 1; // 1 para salto normal, 2 para doble salto
+    private int jumpsPerformed = 0;
 
-    private int maximosSaltos = 1;
-    private int saltosRealizados = 0;
-
+    private float moveHorizontal;
+    private float moveVertical;
     private Rigidbody rb;
-    private bool enSuelo = true;
-    private float horizontal;
-    private float vertical;
+
+    [Header("Raycast Ground Settings")]
+    [SerializeField] private bool isGrounded;
+    [SerializeField] private float rayDistance = 1.1f;
+    [SerializeField] private LayerMask groundLayer;
+
+    private GameManager gm; // Referencia opcional por si la usas luego
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        rb.constraints = RigidbodyConstraints.FreezeRotation; // Evita que el personaje se caiga de lado al chocar
     }
 
     void Update()
     {
-        horizontal = Input.GetAxis("Horizontal");
-        vertical = Input.GetAxis("Vertical");
-
-        // SALTO Y DOBLE SALTO
-        if (Input.GetKeyDown(KeyCode.Space))
+        // Si el personaje está detenido, no procesamos entradas de movimiento ni salto
+        if (isStop)
         {
-            if (enSuelo)
+            moveHorizontal = 0f;
+            moveVertical = 0f;
+            return;
+        }
+
+        moveHorizontal = Input.GetAxis("Horizontal");
+        moveVertical = Input.GetAxis("Vertical");
+
+        // Detección de suelo por Raycast (del primer código)
+        CheckGround();
+
+        // Lógica de Salto y Doble Salto unificada
+        if (Input.GetButtonDown("Jump"))
+        {
+            if (isGrounded)
             {
-                // Primer salto desde el suelo
-                EjecutarSalto(fuerzaSalto);
-                enSuelo = false;
-                saltosRealizados = 1;
-                transform.SetParent(null);
+                // Primer salto
+                ExecuteJump(jumpForce);
+                jumpsPerformed = 1;
+                transform.SetParent(null); // Desvincula de plataformas móviles al saltar
             }
-            else if (saltosRealizados < maximosSaltos)
+            else if (jumpsPerformed < maxJumps)
             {
-                // Segundo salto en el aire (usando la fuerza de doble salto)
-                EjecutarSalto(fuerzaDoble);
-                saltosRealizados++;
+                // Segundo salto en el aire
+                ExecuteJump(doubleJumpForce);
+                jumpsPerformed++;
             }
         }
     }
 
-    void EjecutarSalto(float fuerza)
+    private void FixedUpdate()
     {
-        // Reseteamos la velocidad vertical para un impulso limpio y consistente
+        if (isStop) return;
+
+        // Movimiento relativo a la rotación de la cámara (tomado del primer script pero mejorado)
+        Vector3 movement = (transform.forward * moveVertical + transform.right * moveHorizontal).normalized;
+        rb.linearVelocity = new Vector3(movement.x * speed, rb.linearVelocity.y, movement.z * speed);
+    }
+
+    private void ExecuteJump(float force)
+    {
+        // Resetea la velocidad vertical para un impulso limpio y consistente
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        rb.AddForce(Vector3.up * fuerza, ForceMode.Impulse);
+        rb.AddForce(Vector3.up * force, ForceMode.Impulse);
     }
 
-    void FixedUpdate()
+    private void CheckGround()
     {
+        Vector3 origin = transform.position;
+        isGrounded = Physics.Raycast(origin, Vector3.down, rayDistance, groundLayer);
 
-        Vector3 velocidadMovimiento = new Vector3(-horizontal * velocidadCaminar, rb.linearVelocity.y, -vertical * velocidadCaminar);
-        rb.linearVelocity = velocidadMovimiento;
+        Color colorRay = isGrounded ? Color.green : Color.red;
+        Debug.DrawRay(origin, Vector3.down * rayDistance, colorRay);
     }
 
+    // --- Métodos de interacción con Plataformas (del segundo script) ---
     private void OnCollisionStay(Collision collision)
     {
         foreach (ContactPoint contacto in collision.contacts)
         {
             if (contacto.normal.y > 0.5f)
             {
-                enSuelo = true;
-
                 if (collision.gameObject.CompareTag("Plataforma"))
                 {
                     transform.SetParent(collision.transform);
@@ -83,25 +120,30 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnCollisionExit(Collision collision)
     {
-
         if (collision.gameObject.CompareTag("Plataforma"))
         {
             transform.SetParent(null);
         }
-
-        enSuelo = false;
-    }
-    public void HabilitarDobleSalto()
-    {
-        maximosSaltos = 2;
     }
 
-    public void DeshabilitarDobleSalto()
+    // --- Métodos públicos para habilidades o control externo ---
+    public void RotateCharacter(float rotateY)
     {
-        maximosSaltos = 1;
-        if (saltosRealizados > 1)
+        // Método indispensable para que funcione con tu script CameraFollow
+        transform.rotation = Quaternion.Euler(0f, rotateY, 0f);
+    }
+
+    public void EnableDoubleJump()
+    {
+        maxJumps = 2;
+    }
+
+    public void DisableDoubleJump()
+    {
+        maxJumps = 1;
+        if (jumpsPerformed > 1)
         {
-            saltosRealizados = 1;
+            jumpsPerformed = 1;
         }
     }
 }

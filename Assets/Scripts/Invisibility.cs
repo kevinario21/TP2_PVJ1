@@ -1,16 +1,27 @@
+using System.Collections;
 using UnityEngine;
 
-public class Invisibility : MonoBehaviour
+public class InvisibilityPowerUp : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    [Header("Configuración de Invisibilidad")]
+    [SerializeField] private float invisibilityDuration = 20f;
 
-    // Update is called once per frame
-    void Update()
+    private void OnTriggerEnter(Collider other)
     {
-        
+        // Si el jugador toca el ítem
+        if (other.CompareTag("Player"))
+        {
+            // Buscamos si el jugador tiene el componente para volverse invisible
+            PlayerInvisibility playerInvis = other.GetComponent<PlayerInvisibility>();
+            if (playerInvis == null)
+            {
+                playerInvis = other.gameObject.AddComponent<PlayerInvisibility>();
+            }
+
+            playerInvis.ActivateInvisibility(invisibilityDuration);
+
+            // Destruimos el ítem del suelo
+            Destroy(gameObject);
+        }
     }
 }

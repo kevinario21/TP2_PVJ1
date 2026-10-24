@@ -20,7 +20,6 @@ public class GoalZone : MonoBehaviour
                     // Coloca el ítem visualmente en la zona de meta
                     ItemInZone(item);
 
-                    // ¡CONEXIÓN CLAVE! Notificamos al GameManager que se alcanzó la victoria
                     if (GameManager.Instance != null)
                     {
                         GameManager.Instance.NotifyGoalZone();
@@ -31,7 +30,7 @@ public class GoalZone : MonoBehaviour
                 else
                 {
                     Debug.Log("Llegaste a la meta, pero no llevas ningún ítem encima.");
-                    // Opcional: Aquí podrías manejar alguna penalización o mensaje en pantalla si llega sin el ítem
+                  
                 }
             }
         }

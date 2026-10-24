@@ -32,7 +32,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Ground & Platform Settings")]
     [SerializeField] private bool isGrounded;          // Detectado por Raycast (para el terreno general)
     [SerializeField] private bool isOnPlatform;        // Detectado por Colisión (para la plataforma móvil)
-    [SerializeField] private float rayDistance = 1.1f;
+    [SerializeField] private float rayDistance = 1.5f;
     [SerializeField] private LayerMask groundLayer;
 
     void Start()

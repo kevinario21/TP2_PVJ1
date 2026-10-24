@@ -567,8 +567,8 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
+  m_Speed: 5
+  m_Acceleration: 10
   avoidancePriority: 50
   m_AngularSpeed: 120
   m_StoppingDistance: 0
@@ -1155,6 +1155,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90e3e1d916256954a85a5cdd25c7103e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LetalGas
+  damagePerSecond: 5
 --- !u!4 &830393633
 Transform:
   m_ObjectHideFlags: 0
@@ -1164,7 +1165,7 @@ Transform:
   m_GameObject: {fileID: 830393630}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 455.1, y: 96.4, z: 658.8}
+  m_LocalPosition: {x: 465.9, y: 96.4, z: 658.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1641,7 +1642,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa8bc56177fb6bf4daef0a7a386c7e61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  speed: 5
+  speed: 10
   isStop: 0
   jumpForce: 10
   doubleJumpForce: 5
@@ -2239,7 +2240,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c2a5b5ea4961d94e91a2b06f2990164, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Invisibility
-  invisibilityDuration: 25
+  invisibilityDuration: 35
 --- !u!65 &1644096836
 BoxCollider:
   m_ObjectHideFlags: 0

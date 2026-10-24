@@ -4,25 +4,23 @@ using UnityEngine;
 
 public class HealthSystem : MonoBehaviour
 {
-
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 100f;
     private float currentHealth;
-    public float CurrentHealth => currentHealth;//usamos getter y setter para el gameManager - solo lectura
+    public float CurrentHealth => currentHealth; // Getter de sólo lectura
 
     [SerializeField] private bool isDead;
-    public bool IsDead
-    {
-        get => isDead;
-
-    }
+    public bool IsDead => isDead;
 
     [SerializeField] private GameObject vfx;
 
     private Rigidbody rb;
     private Collider col;
-    //private Attack attack;
-    private MeshRenderer mesh;
+    private Attack attack;
+
+    // Usamos Renderer general para evitar problemas si usa MeshRenderer o SkinnedMeshRenderer
+    private Renderer characterRenderer;
+
     private void Awake()
     {
         currentHealth = maxHealth;
@@ -30,69 +28,68 @@ public class HealthSystem : MonoBehaviour
 
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
-        //attack = GetComponent<Attack>();
-        mesh = GetComponent<MeshRenderer>();
+        attack = GetComponent<Attack>();
+
+        characterRenderer = GetComponentInChildren<Renderer>();
     }
+
     public void TakeDamage(float amount)
     {
         if (isDead) return;
+
         currentHealth -= amount;
-        //clamp permite normalizar un valor de acuerdo a los limites
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
-        /*
-         * math.clamp(5, 1, 10) => 5 (esta dentro del rango)
-         * math.clamp(-4, 0, 10) => 0 (es menor que el minimo, devuelve 0)
-         * math.clamp(15, 0, 10) => 10 (es mayor que el maximo, devuelve 10)
-         */
+        Debug.Log($"{gameObject.name} recibe daño. Salud actual: {currentHealth}");
 
-        //Debug.Log($"Salud actual: " + currentHealth);
-        Debug.Log($"Salud actual: {currentHealth}");
         if (currentHealth <= 0f)
         {
             Dead();
         }
     }
+
     private void Dead()
     {
         isDead = true;
 
-        //agregar condicional comparando tags player y character, notificar al gameManager
-
+        // Notificamos al GameManager según el Tag del objeto que muere
         if (gameObject.CompareTag("Player"))
         {
-            GameManager.Instance.NotifyPlayerDead();
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.NotifyPlayerDead();
+            }
+            Debug.Log("¡El Jugador ha muerto! Game Over.");
         }
         else if (gameObject.CompareTag("Character"))
         {
-            GameManager.Instance.NotifyEnemyDefeat();
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.NotifyEnemyDefeat();
+            }
+            Debug.Log("Enemigo derrotado.");
         }
 
-        vfx.SetActive(true);
-        //activar vfx
+        // Iniciamos la transición para apagar componentes y destruir el objeto
         StartCoroutine(DestroyTransition());
-        //iniciar Corrutina
-
-
-        Debug.Log("Character eliminado");
-        // Notificación al GameManager si existiera 
-        //GameManager.Instance.ChangeState(GameState.GameOver);
-        //Destroy object
-        //efectos
-        //animaciones
     }
 
     IEnumerator DestroyTransition()
     {
-        col.enabled = false;
-        rb.isKinematic = true;
-        mesh.enabled = false;
-      //  attack.enabled = false;
+        // Desactivamos físicas y colisiones
+        if (col != null) col.enabled = false;
+        if (rb != null) rb.isKinematic = true;
 
+        // Desactivamos el ataque si lo tiene
+        if (attack != null) attack.enabled = false;
+
+        // Ocultamos la malla visual
+        if (characterRenderer != null) characterRenderer.enabled = false;
+
+        // Esperamos 5 segundos antes de destruir el objeto
         yield return new WaitForSeconds(5f);
 
+        // Destruimos el objeto de la escena
         Destroy(this.gameObject);
     }
-    //crear corrutina deshabilitando componentes y destruyendo el objeto
-
 }

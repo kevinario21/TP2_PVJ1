@@ -10,21 +10,19 @@ public enum GameState
     Victory,
     GameOver,
 }
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-    //static
 
-    //settings
     [Header("State Settings")]
     [SerializeField] private GameState currentState;
 
-    [Header("Victory Settings")]
+    [Header("Victory Settings (Enemigos)")]
     [SerializeField] private EnemyAI[] enemies;
     [SerializeField] private int totalEnemies;
     [SerializeField] private int enemiesRemaining;
 
-    //singleton
     private void Awake()
     {
         if (Instance == null)
@@ -35,35 +33,33 @@ public class GameManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
-        DontDestroyOnLoad(gameObject);//UI y escenas
+        DontDestroyOnLoad(gameObject);
     }
+
     void Start()
     {
-        //estados iniciales
-        //EnemyAI[] enemies = FindObjectsByType<EnemyAI>(FindObjectsSortMode.None);
+        enemies = FindObjectsByType<EnemyAI>(FindObjectsInactive.Exclude);
         totalEnemies = enemies.Length;
         enemiesRemaining = totalEnemies;
+
         ChangeState(GameState.Playing);
     }
 
     void Update()
     {
-        //pausa inputs
         if (Input.GetKeyDown(KeyCode.P))
         {
             Paused();
         }
     }
 
-
-    //switch estados
     public void ChangeState(GameState newState)
     {
         currentState = newState;
         switch (currentState)
         {
             case GameState.Start:
-                Time.timeScale = 1f;//0f - 1f
+                Time.timeScale = 1f;
                 Debug.Log("Inicio el juego");
                 break;
             case GameState.Playing:
@@ -76,7 +72,6 @@ public class GameManager : MonoBehaviour
                 break;
             case GameState.Victory:
                 Time.timeScale = 0f;
-                //corrutina para detener el tiempo
                 Debug.Log("<color=cyan>ESTADO: Victoria</color>");
                 break;
             case GameState.GameOver:
@@ -86,7 +81,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //pausa
     public void Paused()
     {
         if (currentState == GameState.Playing)
@@ -99,14 +93,14 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //notificaciones
+    
     public void NotifyPlayerDead()
     {
         if (currentState != GameState.Playing) return;
-
         ChangeState(GameState.GameOver);
     }
 
+    
     public void NotifyEnemyDefeat()
     {
         if (currentState != GameState.Playing) return;
@@ -119,11 +113,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    
     public void NotifyGoalZone()
     {
         if (currentState != GameState.Playing) return;
 
         ChangeState(GameState.Victory);
     }
-
 }
